@@ -66,6 +66,17 @@ class OrbitMap(object):
         return counter.count()
 
 
+def orbit_parents(node, target):
+    queue = deque([(node, [])])
+    while queue:
+        planet, path = queue.pop()
+        if planet.name() == target:
+            return path
+        for moon in planet.moons():
+            queue.append((moon, path + [planet.name()]))
+    return []
+
+
 def part1(file):
     lines = list(map(lambda x: x.strip().split(')'), file.readlines()))
     orbit_map = OrbitMap(lines)
@@ -73,8 +84,15 @@ def part1(file):
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    lines = list(map(lambda x: x.strip().split(')'), file.readlines()))
+    orbit_map = OrbitMap(lines)
+    you = deque(orbit_parents(orbit_map.com(), 'YOU'))
+    san = deque(orbit_parents(orbit_map.com(), 'SAN'))
+    while you and san and you[0] == san[0]:
+        you.popleft()
+        san.popleft()
+    transfers = len(you) + len(san)
+    print(f"Answer: {transfers}")
 
 
 def main(part, file):
