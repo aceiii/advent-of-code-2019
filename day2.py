@@ -57,7 +57,7 @@ class Computer(object):
 
 
 def part1(file):
-    op_codes = map(lambda x: int(x, 10), file.read().split(','))
+    op_codes = list(map(lambda x: int(x, 10), file.read().split(',')))
     computer = Computer(op_codes)
     computer.set(1, 12)
     computer.set(2, 2)
