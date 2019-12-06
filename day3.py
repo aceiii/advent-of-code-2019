@@ -47,15 +47,17 @@ def get_next_pos(pos, rule):
 def segments_from_rules(rules):
     segments = []
     current_pos = (0, 0)
+    dist = 0
     for rule in rules:
         next_pos = get_next_pos(current_pos, rule)
-        segments.append((current_pos, next_pos))
+        segments.append((current_pos, next_pos, dist))
+        dist += manhattan_distance(current_pos, next_pos)
         current_pos = next_pos
     return segments
 
 
 def segment_orientation(segment):
-    (x1, y1), (x2, y2) = segment
+    (x1, y1), (x2, y2), _ = segment
     xdiff = abs(x2 - x1)
     ydiff = abs(y2 - y1)
     if xdiff == 0 and ydiff == 0:
@@ -84,7 +86,10 @@ def intersect_segments(seg1, seg2):
     if x <= min_x or x >= max_x or y <= min_y or y >= max_y:
         return None
 
-    return (x, y)
+    intersection = (x, y)
+    step1 = seg1[2] + manhattan_distance(seg1[0], intersection)
+    step2 = seg2[2] + manhattan_distance(seg2[0], intersection)
+    return (intersection, step1 + step2)
 
 
 def find_intersections(segments1, segments2):
@@ -99,9 +104,12 @@ def find_intersections(segments1, segments2):
     return results
 
 
-def manhattan_distance(pos):
-    x, y = pos
-    return abs(x) + abs(y)
+def manhattan_distance(pos1, pos2):
+    x1, y1 = pos1
+    x2, y2 = pos2
+    xd = x2 - x1
+    yd = y2 - y1
+    return abs(xd) + abs(yd)
 
 
 def part1(file):
@@ -110,13 +118,18 @@ def part1(file):
     segments1 = segments_from_rules(rules1)
     segments2 = segments_from_rules(rules2)
     intersections = find_intersections(segments1, segments2)
-    dists = sorted(map(manhattan_distance, intersections))
+    dists = sorted(map(lambda x: manhattan_distance((0, 0), x[0]), intersections))
     print(f"Answer: {dists[0]}")
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    rules1 = parse_rules(file.readline())
+    rules2 = parse_rules(file.readline())
+    segments1 = segments_from_rules(rules1)
+    segments2 = segments_from_rules(rules2)
+    intersections = find_intersections(segments1, segments2)
+    dists = sorted(map(lambda x: x[1], intersections))
+    print(f"Answer: {dists[0]}")
 
 
 def main(part, file):
