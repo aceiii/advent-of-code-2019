@@ -175,6 +175,10 @@ class Computer(object):
             pass
 
 
+def boost_mode_input():
+    return 2
+
+
 def part1(file):
     data = list(map(lambda x: int(x, 10), file.readline().strip().split(',')))
     computer = Computer(data, int_input, std_output)
@@ -182,8 +186,9 @@ def part1(file):
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    data = list(map(lambda x: int(x, 10), file.readline().strip().split(',')))
+    computer = Computer(data, boost_mode_input, std_output)
+    computer.run()
 
 
 def main(part, file):
