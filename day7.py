@@ -33,6 +33,8 @@ def int_input():
 
 
 class Computer(object):
+    _id = 0
+
     def __init__(self, op_codes, input_device, output_device):
         self._data = op_codes[:]
         self._index = 0
@@ -40,12 +42,18 @@ class Computer(object):
         self._input = input_device
         self._output = output_device
 
+        Computer._id += 1
+        self._id = Computer._id
+
+    def id(self):
+        return self._id
+
     def index(self):
         return self._index
 
     def step(self, size):
         self._index += size
-        return self.op() != OpCode.HALT
+        return size
 
     def data(self):
         return self._data[:]
@@ -100,9 +108,12 @@ class Computer(object):
 
         if op_code is OpCode.INPUT:
             index = self.param(0, True)
-            value = self.input()
-            self.set(index, value)
-            return 2
+            try:
+                value = self.input()
+                self.set(index, value)
+                return 2
+            except Exception:
+                return 0
 
         if op_code is OpCode.OUTPUT:
             value = self.param(0)
@@ -126,6 +137,9 @@ class Computer(object):
             self.set(index, 1 if op(num1, num2) else 0)
             return 4
 
+    def stopped(self):
+        return self.op() == OpCode.HALT
+
     def run(self):
         while self.step(self.tick()):
             pass
@@ -133,8 +147,6 @@ class Computer(object):
 
 def make_queue_input(queue):
     def input_device():
-        if not len(queue):
-            return 0
         return queue.popleft()
     return input_device
 
@@ -150,22 +162,60 @@ class Amplifiers(object):
         self._phase = phase[:]
         self._inputs = [deque() for _ in range(len(phase) + 1)]
         self._amps = []
-        for n in range(5):
+        for n in range(len(phase)):
             input_device = make_queue_input(self._inputs[n])
             output_device = make_queue_output(self._inputs[n + 1])
             self._amps.append(Computer(program, input_device, output_device))
-        self._inputs[0].append(0)
 
     def run(self):
         for index, phase in enumerate(self._phase):
             self._inputs[index].clear()
             self._inputs[index].append(phase)
         self._inputs[-1].clear()
+        self._inputs[0].append(0)
 
         for amp in self._amps:
             amp.run()
 
         return self._inputs[-1].popleft()
+
+
+class FeedbackAmplifiers(object):
+    def __init__(self, program, phase):
+        self._phase = phase[:]
+        self._inputs = [deque() for _ in range(len(phase))]
+        self._amps = []
+        for n in range(len(phase)):
+            next_index = (n + 1) % len(phase)
+            input_device = make_queue_input(self._inputs[n])
+            output_device = make_queue_output(self._inputs[next_index])
+            self._amps.append(Computer(program, input_device, output_device))
+
+    def stopped(self):
+        return all(map(lambda x: x.stopped(), self._amps))
+
+    def stalled(self):
+        return all(map(lambda x: not len(x), self._inputs))
+
+    def run(self):
+        for index, phase in enumerate(self._phase):
+            self._inputs[index].clear()
+            self._inputs[index].append(phase)
+        self._inputs[0].append(0)
+
+        index = 0
+        while True:
+
+            amp = self._amps[index]
+            if not amp.stopped():
+                amp.run()
+
+            index = (index + 1) % len(self._phase)
+
+            if self.stopped():
+                break
+
+        return self._inputs[0].pop() if len(self._inputs[0]) else None
 
 
 def part1(file):
@@ -175,14 +225,23 @@ def part1(file):
     for phase in permutations(range(5)):
         amps = Amplifiers(program, phase)
         output = amps.run()
-        signal = max(signal, output)
+        if output:
+            signal = max(signal, output)
 
     print(f"Answer: {signal}")
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    program = list(map(lambda x: int(x, 10), file.readline().split(',')))
+
+    signal = 0
+    for phase in permutations(range(5, 10)):
+        amps = FeedbackAmplifiers(program, phase)
+        output = amps.run()
+        if output:
+            signal = max(signal, output)
+
+    print(f"Answer: {signal}")
 
 
 def main(part, file):
