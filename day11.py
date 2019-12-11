@@ -101,7 +101,10 @@ class Computer(object):
         return self.get(value)
 
     def input(self):
-        return self._input()
+        value = self._input()
+        if type(value) is int:
+            return value
+        return int(value, 10)
 
     def output(self, value):
         self._output(value)
@@ -133,8 +136,12 @@ class Computer(object):
                 index += self.offset()
             try:
                 value = self.input()
+                if value is None:
+                    return 0
                 self.set(index, value)
                 return 2
+            except TypeError:
+                raise
             except Exception:
                 return 0
 
@@ -195,6 +202,8 @@ class Robot(Computer):
         self._pos = (0, 0)
         self._dir = (0, -1)
         self._steps = 0
+        self._min = (0, 0)
+        self._max = (0, 0)
 
     def _process(self, value):
         if self._output_mode is Robot.Mode.PAINT:
@@ -211,7 +220,10 @@ class Robot(Computer):
         return self.color().value
 
     def position(self):
-        return self._pos[:]
+        return self._pos
+
+    def bounds(self):
+        return (self._min, self._max)
 
     def color(self):
         pos = self.position()
@@ -233,7 +245,19 @@ class Robot(Computer):
     def move(self):
         x, y = self._pos
         dx, dy = self._dir
-        self._pos = (x + dx, y + dy)
+        (min_x, min_y), (max_x, max_y) = self.bounds()
+
+        new_x = x + dx
+        new_y = y + dy
+
+        min_x = min(min_x, new_x)
+        min_y = min(min_y, new_y)
+        max_x = max(max_x, new_x)
+        max_y = max(max_y, new_y)
+
+        self._pos = (new_x, new_y)
+        self._min = (min_x, min_y)
+        self._max = (max_x, max_y)
         self._steps += 1
 
     def painted(self):
@@ -242,6 +266,20 @@ class Robot(Computer):
     def steps(self):
         return self._steps
 
+    def print(self):
+        (min_x, min_y), (max_x, max_y) = self.bounds()
+        rows = []
+
+        for y in range(min_y, max_y + 1):
+            row = []
+            for x in range(min_x, max_x + 1):
+                pos = (x, y)
+                color = Robot.Color.BLACK
+                if pos in self._panels:
+                    color = self._panels[pos]
+                row.append('█' if color is Robot.Color.WHITE  else ' ')
+            rows.append(''.join(row))
+        return "\n".join(rows)
 
 def part1(file):
     program = list(map(lambda x: int(x, 10), file.readline().split(',')))
@@ -251,8 +289,11 @@ def part1(file):
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    program = list(map(lambda x: int(x, 10), file.readline().split(',')))
+    robot = Robot(program)
+    robot.paint(Robot.Color.WHITE)
+    robot.run()
+    print(robot.print())
 
 
 def main(part, file):
