@@ -6,6 +6,14 @@ import sys
 class MoonSimulator(object):
     def __init__(self, moons):
         self._moons = [(pos[:], (0, 0, 0)) for pos in moons]
+        self._x_states = set()
+        self._y_states = set()
+        self._z_states = set()
+        self._states = set()
+        self._step_count = 0
+        self._stop_x = False
+        self._stop_y = False
+        self._stop_z = False
 
     def step(self):
         accel = [(0, 0, 0) for _ in self._moons]
@@ -33,6 +41,30 @@ class MoonSimulator(object):
             pos = (x + vx, y + vy, z + vz)
             self._moons[index] = (pos, vel)
 
+        x_state = tuple(map(lambda x: (x[0][0], x[1][0]), self._moons))
+        y_state = tuple(map(lambda x: (x[0][1], x[1][1]), self._moons))
+        z_state = tuple(map(lambda x: (x[0][2], x[1][2]), self._moons))
+
+        if not self._stop_x:
+            if x_state in self._x_states:
+                self._stop_x = True
+            else:
+                self._x_states.add(x_state)
+
+        if not self._stop_y:
+            if y_state in self._y_states:
+                self._stop_y = True
+            else:
+                self._y_states.add(y_state)
+
+        if not self._stop_z:
+            if z_state in self._z_states:
+                self._stop_z = True
+            else:
+                self._z_states.add(z_state)
+
+        self._step_count += 1
+
     def energy(self):
         total = 0
         for moon in self._moons:
@@ -41,6 +73,26 @@ class MoonSimulator(object):
             kin = sum(map(abs, vel))
             total += pot * kin
         return total
+
+    def loopTime(self):
+        xlen = len(self._x_states)
+        ylen = len(self._y_states)
+        zlen = len(self._z_states)
+
+        x, y, z = sorted([xlen, ylen, zlen])
+
+        val = z * y
+        while True:
+            if val % x == 0:
+                return val
+                break
+            val += z * y
+
+    def runUntilLoop(self):
+        while True:
+            if self._stop_x and self._stop_y and self._stop_z:
+                break
+            self.step()
 
 
 def parse_moons(lines):
@@ -63,8 +115,11 @@ def part1(file):
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    lines = file.readlines()
+    moons = MoonSimulator(parse_moons(lines))
+    moons.runUntilLoop()
+    loop = moons.loopTime()
+    print(f"Answer: {loop}")
 
 
 def main(part, file):
