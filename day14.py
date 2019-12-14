@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-from math import ceil
+from math import ceil, floor
 from collections import deque, defaultdict
 
 
@@ -63,8 +63,26 @@ def part1(file):
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    reactions = list(map(parse_reaction, file.readlines()))
+    factory = NanoFactory(reactions)
+    target = 1000000000000
+    lower = 1
+    upper = 1000
+    while True:
+        ore = factory.calculateOre(upper)
+        if ore >= target:
+            break
+        upper *= 10
+
+    while lower < upper:
+        mid = floor((lower + upper) / 2)
+        ore = factory.calculateOre(mid)
+        if ore > target:
+            upper = mid
+        elif ore <= target:
+            lower = mid + 1
+
+    print(f"Answer: {lower - 1}")
 
 
 def main(part, file):
