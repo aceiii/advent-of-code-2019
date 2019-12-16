@@ -5,7 +5,6 @@ from enum import Enum
 from operator import add, mul, lt, eq, truth, not_
 from collections import deque
 from itertools import permutations
-from time import sleep
 
 
 class OpCode(Enum):
@@ -49,12 +48,16 @@ class Computer(object):
         self._offset = 0
         self._input = input_device
         self._output = output_device
+        self._debug = False
 
         Computer._id += 1
         self._id = Computer._id
 
     def id(self):
         return self._id
+
+    def debug(self):
+        self._debug = True
 
     def index(self):
         return self._index
@@ -244,22 +247,18 @@ class RepairDroid(Computer):
             self._pos = self._path.pop()
         else:
             if status is Status.FOUND:
+                assert(self._target is None)
                 self._target = pos
-                self._path.append(prev_pos)
-                self._pos = pos
-                self.setBlock(pos, Block.EMPTY)
-                return
 
-            if status is Status.VALID:
-                self._path.append(prev_pos)
-                self._pos = pos
-                self.setBlock(pos, Block.EMPTY)
-            else:
+            if status is Status.INVALID:
                 self.setBlock(pos, Block.WALL)
+            else:
+                self._path.append(prev_pos)
+                self._pos = pos
+                self.setBlock(pos, Block.EMPTY)
 
-        # =======================
-        print(self.display())
-        # =======================
+        if self._debug:
+            print(self.display())
 
         x, y = self.pos()
 
@@ -296,21 +295,23 @@ class RepairDroid(Computer):
     def pos(self):
         return self._pos
 
-    def block(self):
-        return self._blocks[self.pos()]
+    def block(self, pos):
+        return self._blocks[pos]
 
-    def neighbours(self):
+    def neighbours(self, pos):
+        x, y = pos
         positions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        x, y = self.pos()
         return [(x + dx, y + dy) for (dx, dy) in positions]
 
-    def locate(self):
-        while not self._target and self._queued_input:
+    def map(self):
+        while self._queued_input:
             self.run()
-        return self._path
 
     def bounds(self):
         return self._bounds
+
+    def target(self):
+        return self._target
 
     def displayAll(self):
         (min_x, min_y), (max_x, max_y) = self.bounds()
@@ -372,13 +373,47 @@ class RepairDroid(Computer):
 def part1(file):
     program = list(map(lambda x: int(x, 10), file.readline().split(',')))
     droid = RepairDroid(program)
-    path = droid.locate()
-    print(f"Answer: {len(path)}")
+    droid.map()
+    start = (0, 0)
+    target = droid.target()
+    dist = {}
+    dist[start] = 0
+    queued = deque([start])
+    while queued:
+        pos = queued.popleft()
+        prev_dist = dist[pos]
+        for next_pos in droid.neighbours(pos):
+            block = droid.block(next_pos)
+            if block is Block.WALL:
+                continue
+            new_dist = prev_dist + 1
+            if next_pos not in dist or new_dist < dist[next_pos]:
+                dist[next_pos] = new_dist
+                queued.append(next_pos)
+    answer = dist[target]
+    print(f"Answer: {answer}")
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    program = list(map(lambda x: int(x, 10), file.readline().split(',')))
+    droid = RepairDroid(program)
+    droid.map()
+    start = droid.target()
+    dist = {}
+    dist[start] = 0
+    queued = deque([start])
+    while queued:
+        pos = queued.popleft()
+        prev_dist = dist[pos]
+        for next_pos in droid.neighbours(pos):
+            block = droid.block(next_pos)
+            if block is Block.WALL:
+                continue
+            if next_pos not in dist:
+                dist[next_pos] = prev_dist + 1
+                queued.append(next_pos)
+    answer = max(dist.values())
+    print(f"Answer: {answer}")
 
 
 def main(part, file):
