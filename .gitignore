@@ -2,3 +2,4 @@
 Thumbs.db
 
 build/
+__pycache__/
