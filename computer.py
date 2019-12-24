@@ -62,7 +62,7 @@ class Computer(object):
     def index(self):
         return self._index
 
-    def step(self, size):
+    def _step(self, size):
         self._index += size
         return size
 
@@ -113,7 +113,7 @@ class Computer(object):
     def output(self, value):
         self._output(value)
 
-    def tick(self):
+    def _tick(self):
         self._counter += 1
 
         op_code = self.op()
@@ -176,8 +176,11 @@ class Computer(object):
     def stopped(self):
         return self.op() == OpCode.HALT
 
+    def step(self):
+        return self._step(self._tick())
+
     def run(self):
-        while self.step(self.tick()):
+        while self.step():
             pass
 
 
