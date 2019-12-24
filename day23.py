@@ -69,8 +69,40 @@ def part1(file):
 
 
 def part2(file):
-    # TOOD: Second part of day
-    pass
+    N = 50
+    nat = 255
+    network = {}
+    network[nat] = deque()
+    program = parse_program(file)
+    computers = [NetworkComputer(n, program, network) for n in range(N)]
+    idle_loop_count = 1000
+    idle_counter = 0
+    instr_count = 0
+    answer = []
+    while computers:
+        if all(not network[n] if n in network else True for n in range(N)):
+            idle_counter += 1
+        else:
+            idle_counter = 0
+
+        if idle_counter >= idle_loop_count and network[nat]:
+            idle_counter = 0
+            x, y = network[nat].pop()
+            network[nat].clear()
+            network[0].append((x, y))
+            if answer and answer[-1] == y:
+                break
+            answer.append(y)
+
+        instr_count += 1
+        for comp in computers:
+            if comp.stopped():
+                computers = filter(lambda c: not c.stopped(), computers)
+                continue
+            comp.step()
+
+    answer = answer[-1]
+    print(f"Answer: {answer}")
 
 
 def main(part, file):
